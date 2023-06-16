@@ -1,0 +1,18 @@
+// endpoint
+http://ecmuatot.olamnet.com:8080/home/PTP/com.eibus.web.soap.Gateway.wcp?organization=o=PTP,cn=cordys,cn=uatInst,o=olamdomain.com
+
+//envelope
+
+<SOAP:Envelope xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/">
+	<SOAP:Body>
+		<InvoiceDocumentDownloadWrapper xmlns="http://services.ap.com/invoice" preserveSpace="no" qAccess="0" qValues="">
+			<inputRequest>
+				<COMPANY_CODE>${company}</COMPANY_CODE>
+				<VENDOR_CODE>${vendor}</VENDOR_CODE>
+				<FISCAL_YEAR>${year}</FISCAL_YEAR>
+				<INVOICE_NO>${invoice}</INVOICE_NO>
+				<POSTING_DOC_NUMBER>${docNumber}</POSTING_DOC_NUMBER>
+			</inputRequest>
+		</InvoiceDocumentDownloadWrapper>
+	</SOAP:Body>
+</SOAP:Envelope>
