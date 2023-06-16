@@ -1,0 +1,87 @@
+(function executeRule(current, previous /*null when async*/ ) {
+
+    try {
+		var glRecord = current.alloacted_gl;
+		var profitCenter = current.alloacted_gl.profit_center;
+		var compCode      = profitCenter.substring(0, 4);		
+		var year          = current.alloacted_gl.year;		
+		var invoiceNumber = current.alloacted_gl.reference;
+		var venderCode    = current.alloacted_gl.offset_acc_no;
+		var docNumber     = current.alloacted_gl.document_number;
+		
+	/*var compCode ="IN12";
+		var invoiceNumber ="Reg_PO_Credit";
+	//var invoiceNumber ="040/TO/NKOK/2019";
+	var year = "2021";
+	var docNumber = "5100000594";
+	var venderCode ="2024877"; */
+				
+        var s = new sn_ws.SOAPMessageV2('x_inmpl_chargeback.ECM Integration CB', 'Get Invoice PDF');
+        s.setStringParameterNoEscape('company', compCode);
+        s.setStringParameterNoEscape('invoice', invoiceNumber);
+        s.setStringParameterNoEscape('year', year);
+        s.setStringParameterNoEscape('docNumber',docNumber);
+        s.setStringParameterNoEscape('vendor', venderCode);
+        var response = s.execute();
+        var responseBody = response.getBody();
+        var status = response.getStatusCode();
+
+        if (status == 200 && responseBody) {
+            var xmlDoc = new XMLDocument2();
+            xmlDoc.parseXML(responseBody);
+            var itemNumber = xmlDoc.getNodeText('//WorkItem');
+						
+            if (itemNumber) {
+				var fileType = "application/pdf";
+				var fileName = xmlDoc.getNodeText('//FileName');			
+				var fileSplit = fileName.split(".");
+				
+				if(fileSplit && fileSplit.length >0){
+					if(fileSplit[1] == 'pdf')
+						fileType = "application/pdf";
+					else if(fileSplit[1] == 'txt')
+						fileType = "text/plain";
+					else if(fileSplit[1] == 'bmp')
+						fileType = "image/bmp";
+					else if(fileSplit[1] == 'jpg' ||fileSplit[1] == 'jpeg' )
+						fileType = "image/jpeg";
+					else if(fileSplit[1] == 'csv')
+						fileType = "text/csv";
+					else if(fileSplit[1] == 'doc')
+						fileType = "application/msword";
+					else if(fileSplit[1] == 'docx')
+						fileType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+					else if(fileSplit[1] == 'gz')
+						fileType = "application/gzip";
+					else if(fileSplit[1] == 'rar')
+						fileType = "application/vnd.rar";
+					else if(fileSplit[1] == 'gif')
+						fileType = "image/gif";
+					else if(fileSplit[1] == 'htm' ||fileSplit[1] == 'html' )
+						fileType = "text/html";
+				}
+				
+                var base64Encoded = xmlDoc.getNodeText('//EncodedContent');
+
+                if (base64Encoded) {
+                    var table = current.getTableName();
+                    var sysId = current.sys_id;
+
+                    var attCreator = new GlideRecord('ecc_queue');
+                    attCreator.agent = "AttachmentCreator";
+                    attCreator.topic = "AttachmentCreator";
+
+                    attCreator.name = fileName + ":" + fileType; //For Example: Test.pdf:application/pdf 
+
+                    attCreator.source = table + ":" + sysId; // Record Table name and sys_id of the perticular record
+
+                    attCreator.payload = base64Encoded; //base64 Content of the file
+                    attCreator.insert();
+                }
+            }
+        }
+    } catch (ex) {
+       gs.info("Some Error Occured while calling ECM API at BR - GetInvoiceFromECM " +ex);
+    }
+
+})(current, previous);
